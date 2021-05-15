@@ -25,6 +25,9 @@
   <ProjectSessionItem path="ble_app_beacon_pca10040_s132;ble_app_beacon_pca10040_s132"/>
   <ProjectSessionItem path="ble_app_beacon_pca10040_s132;ble_app_beacon_pca10040_s132;Application"/>
   <ProjectSessionItem path="ble_app_beacon_pca10040_s132;ble_app_beacon_pca10040_s132;ext_drivers"/>
+  <ProjectSessionItem path="ble_app_beacon_pca10040_s132;ble_app_beacon_pca10040_s132;nRF_BLE"/>
+  <ProjectSessionItem path="ble_app_beacon_pca10040_s132;ble_app_beacon_pca10040_s132;nRF_Drivers"/>
+  <ProjectSessionItem path="ble_app_beacon_pca10040_s132;ble_app_beacon_pca10040_s132;nRF_Libraries"/>
   <ProjectSessionItem path="ble_app_beacon_pca10040_s132;ble_app_beacon_pca10040_s132;nRFX_Drivers"/>
  </Project>
  <Register1>
@@ -47,7 +50,8 @@
  </TraceWindow>
  <Watch1>
   <Watches active="1" update="Never">
-   <Watchpoint expression="bme280_meas" name="bme280_meas" radix="-1" linenumber="459" filename="../../../main.c"/>
+   <Watchpoint expression="bme280_meas" name="bme280_meas" radix="-1" linenumber="426" filename="../../../main.c"/>
+   <Watchpoint expression="err_code" name="err_code" radix="16" linenumber="611" filename="../../../../../../components/ble/common/ble_advdata.c"/>
   </Watches>
  </Watch1>
  <Watch2>
@@ -60,20 +64,29 @@
   <Watches active="0" update="Never"/>
  </Watch4>
  <Files>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="552" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../main.c" selected="1" top="522" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="56" useTextEdit="1" openedFrom="C:/nRF5_SDK_17.0.2/examples/ble_peripheral/ble_beacon_weather/main.c" useBinaryEdit="0" left="0" path="../../../../../../components/drivers_ext/BME280_driver/bme280.c" selected="0" top="56" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="496" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../main.c" selected="1" top="495" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="34" y="474" useTextEdit="1" openedFrom="C:/nRF5_SDK_17.0.2/examples/ble_peripheral/ble_beacon_weather/main.c" useBinaryEdit="0" left="0" path="../../../../../../components/drivers_ext/BME280_driver/bme280.c" selected="0" top="459" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="15" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/drivers_ext/MAX44009_driver/max44009_driver.c" selected="0" top="0" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="94" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/drivers_ext/MAX44009_driver/max44009_driver.h" selected="0" top="69" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="69" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../modules/nrfx/drivers/include/nrfx_twim.h" selected="0" top="58" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="41" y="271" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/drivers_ext/BME280_driver/bme280_api.c" selected="0" top="258" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="9" y="272" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/drivers_ext/BME280_driver/bme280_api.c" selected="0" top="264" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="39" useTextEdit="1" openedFrom="C:/nRF5_SDK_17.0.2/examples/ble_peripheral/ble_beacon_weather/sensors.h" useBinaryEdit="0" left="0" path="../../../sensors.c" selected="0" top="25" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="5789" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../config/sdk_config.h" selected="0" top="5769" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" openedFrom="C:/nRF5_SDK_17.0.2/components/libraries/timer/app_timer.h" useBinaryEdit="0" left="0" path="../config/sdk_config.h" selected="0" top="0" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="10" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../sensors.h" selected="0" top="0" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="99" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/libraries/util/app_error_weak.c" selected="0" top="76" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="27" y="147" useTextEdit="1" openedFrom="C:/nRF5_SDK_17.0.2/examples/ble_peripheral/ble_beacon_weather/main.c" useBinaryEdit="0" left="0" path="../../../../../../components/ble/common/ble_advdata.h" selected="0" top="105" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="99" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/libraries/util/app_error_weak.c" selected="0" top="84" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="42" y="148" useTextEdit="1" openedFrom="C:/nRF5_SDK_17.0.2/examples/ble_peripheral/ble_beacon_weather/main.c" useBinaryEdit="0" left="0" path="../../../../../../components/ble/common/ble_advdata.h" selected="0" top="134" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="1844" useTextEdit="1" openedFrom="C:/nRF5_SDK_17.0.2/examples/ble_peripheral/ble_beacon_weather/main.c" useBinaryEdit="0" left="0" path="../../../../../../components/softdevice/s132/headers/ble_gap.h" selected="0" top="1830" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="370" useTextEdit="1" openedFrom="C:/nRF5_SDK_17.0.2/examples/ble_peripheral/ble_beacon_weather/main.c" useBinaryEdit="0" left="0" path="../../../../../../components/drivers_ext/BME280_driver/bme280_defs.h" selected="0" top="355" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="116" y="271" useTextEdit="1" openedFrom="C:/nRF5_SDK_17.0.2/components/drivers_ext/BME280_driver/bme280.h" useBinaryEdit="0" left="0" path="../../../../../../components/drivers_ext/BME280_driver/bme280_defs.h" selected="0" top="271" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="410" useTextEdit="1" openedFrom="C:/nRF5_SDK_17.0.2/examples/ble_peripheral/ble_beacon_weather/main.c" useBinaryEdit="0" left="0" path="C:/Program Files/SEGGER/SEGGER Embedded Studio for ARM 5.42a/include/stdio.h" selected="0" top="395" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="112" useTextEdit="1" openedFrom="C:/nRF5_SDK_17.0.2/examples/ble_peripheral/ble_beacon_weather/main.c" useBinaryEdit="0" left="0" path="../../../../../../components/libraries/timer/app_timer.h" selected="0" top="92" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="40" y="218" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/libraries/util/app_util.h" selected="0" top="218" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="163" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/libraries/util/app_error.h" selected="0" top="134" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../modules/nrfx/drivers/src/nrfx_saadc.c" selected="0" top="25" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="279" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/libraries/scheduler/app_scheduler.c" selected="0" top="266" codecName=""/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="72" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/libraries/util/app_error.c" selected="0" top="59" codecName=""/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="611" useTextEdit="1" openedFrom="C:/nRF5_SDK_17.0.2/examples/ble_peripheral/ble_beacon_weather/main.c" useBinaryEdit="0" left="0" path="../../../../../../components/ble/common/ble_advdata.c" selected="0" top="598" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="73" useTextEdit="1" openedFrom="C:/nRF5_SDK_17.0.2/components/ble/common/ble_advdata.c" useBinaryEdit="0" left="0" path="../../../../../../components/softdevice/s132/headers/nrf_error.h" selected="0" top="59" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="97" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/libraries/util/nrf_assert.h" selected="0" top="96" codecName="Default"/>
  </Files>
  <ARMCrossStudioWindow activeProject="ble_app_beacon_pca10040_s132" fileDialogDefaultFilter="*.c;*.cpp;*.cxx;*.cc;*.h;*.hpp;*.hxx" autoConnectTarget="J-Link" buildConfiguration="Release" sessionSettings="" debugSearchFileMap="" fileDialogInitialDirectory="C:/nRF5_SDK_17.0.2/modules/nrfx/drivers/src" debugSearchPath="" autoConnectCapabilities="3711"/>
 </session>

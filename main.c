@@ -69,12 +69,33 @@
 #include "nrf_log_default_backends.h"
 
 
+#define CONFIG_APP_MEAS_INTERVAL        60                                 /**< Time interval for taking sensor measurements [s] */
+
+#define CONFIG_BATT_MEAS_ENABLED        1                                  /**< Enable battery measurements */
+#define CONFIG_BATT_MEAS_MIN_LEVEL      1700                               /**< Voltage of 0% Battery Level [mV] */
+#define CONFIG_BATT_MEAS_MAX_LEVEL      3000                               /**< Voltage of 100% Battery Level [mV] */
+#define CONFIG_BATT_MEAS_POLL_INTERVAL  300                                /**< Battery Voltage Polling Interval [s] */
+#define CONFIG_BATT_NOTIF_THRESHOLD     1                                  /**< Battery Level Notification Threshold [percentage point] <0-100>, set to 0 for every measurement */
+#define CONFIG_BATT_MEAS_ADC_CHANNEL    0                                  /**< ADC Channel for Battery Voltage Measurements */
+#define CONFIG_BATT_MEAS_ADC_DIVIDER    6                                  /**< ADC Divider for Battery Voltage Measurements */
+#define CONFIG_BATT_MEAS_ADC_REFERENCE  600                                /**< ADC Reference Voltage for Battery Voltage Measurements [mV] */
+#define CONFIG_BATT_MEAS_ADC_MAX_CONV   ((1 << 14) - 1)                    /**< Maximum ADC Output */
+
+#if CONFIG_BATT_MEAS_ENABLED
+// Verify SDK configuration.
+STATIC_ASSERT(NRFX_SAADC_ENABLED);
+APP_TIMER_DEF(m_batt_timer);                              /**< Battery measurement timer. */
+static uint8_t            m_batt_meas_prev_level = 255;   /**< Previous notified battery level. */
+static nrf_saadc_value_t  saadc_value = 0;                /**< Current value of the adc conversion. */
+#endif // CONFIG_BATT_MEAS_ENABLED
+
 #define APP_BLE_CONN_CFG_TAG            1                                  /**< A tag identifying the SoftDevice BLE configuration. */
 
-#define NON_CONNECTABLE_ADV_INTERVAL    MSEC_TO_UNITS(100, UNIT_0_625_MS)  /**< The advertising interval for non-connectable advertisement (100 ms). This value can vary between 100ms to 10.24s). */
+#define NON_CONNECTABLE_ADV_INTERVAL    MSEC_TO_UNITS(2000, UNIT_0_625_MS) /**< The advertising interval for non-connectable advertisement in ms (2000 ms). This value can vary between 100ms to 10.24s). */
 
 #define APP_COMPANY_IDENTIFIER          0xFFFF                             /**< Manufacturer identifier 0xFFFF -> default, no specific company */
-#define APP_SHORT_LOCAL_NAME            "nagiandev"                        /**< Shortened local name */
+#define APP_DEVICE_NAME                 "niagdev"                          /**< Device name */
+#define APP_DEVICE_SHORT_NAME_LEN       7                                  /**< Short device name length. IMPORTANT: has to be <= APP_DEVICE_NAME */
 #define APP_DEVICE_TYPE                 0x0001                             /**< Manufacturer specific device type: temperature/humidity/pressure/illuminance/battery */
 #define APP_BEACON_INFO_LENGTH          0x0B                               /**< Total length of information advertised by the Beacon (11 bytes). */
 
@@ -95,16 +116,8 @@
 #define TWI_SDA_PIN                     25
 #define VSENS_EN_N_PIN                  4
 
-#if defined(USE_UICR_FOR_MAJ_MIN_VALUES)
-#define MAJ_VAL_OFFSET_IN_BEACON_INFO   18                                 /**< Position of the MSB of the Major Value in m_beacon_info array. */
-#define UICR_ADDRESS                    0x10001080                         /**< Address of the UICR register used by this example. The major and minor versions to be encoded into the advertising data will be picked up from this location. */
-#endif
+APP_TIMER_DEF(m_meas_timer);                                        	         /**< Sensor measurement timer. */
 
-#define MEAS_INTERVAL                   15000                              /**< Time interval for taking sensor measurements (in ms) */
-
-APP_TIMER_DEF(m_meas_timer_id);                                        	   /**< Sensor measurement timer. */
-
-//static ble_advdata_t        m_raw_adv_data;                                      /**< Unencoded advertising data */
 static ble_gap_adv_params_t m_adv_params;                                        /**< Parameters to be passed to the stack when starting advertising. */
 static uint8_t              m_adv_handle = BLE_GAP_ADV_SET_HANDLE_NOT_SET;       /**< Advertising handle used to identify an advertising set. */
 static uint8_t              m_enc_advdata_buff1[BLE_GAP_ADV_SET_DATA_SIZE_MAX];  /**< 1st buffer for storing an encoded advertising set. */
@@ -149,29 +162,15 @@ static ble_gap_adv_data_t m_adv_data[ADV_BUFFERS_USED] =
 
 static uint8_t ui_buff_index = 0;
 
-
-//static uint8_t m_beacon_info[APP_BEACON_INFO_LENGTH] =                    /**< Information advertised by the Beacon. */
-/*{
-    APP_DEVICE_TYPE,     // Manufacturer specific information. Specifies the device type in this
-                         // implementation.
-    APP_ADV_DATA_LENGTH, // Manufacturer specific information. Specifies the length of the
-                         // manufacturer specific data in this implementation.
-    APP_BEACON_UUID,     // 128 bit UUID value.
-    APP_MAJOR_VALUE,     // Major arbitrary value that can be used to distinguish between Beacons.
-    APP_MINOR_VALUE,     // Minor arbitrary value that can be used to distinguish between Beacons.
-    APP_MEASURED_RSSI    // Manufacturer specific information. The Beacon's measured TX power in
-                         // this implementation.
-};*/
-
 static uint8_t m_beacon_info[APP_BEACON_INFO_LENGTH] =                    /**< Information advertised by the Beacon. */
 {
     APP_DEVICE_TYPE,     // Manufacturer specific information. Specifies the device type in this
                          // implementation.
-    0x00, 0x00,          // Dummy temperature (real value will be filled-in later)
-    0x00, 0x00,          // Dummy relative humidity (real value will be filled-in later)
-    0x00, 0x00,          // Dummy atmospheric pressure (real value will be filled-in later)
-    0x00, 0x00,          // Dummy illuminance (real value will be filled-in later)
-    0x00                 // Dummy battery level (real value will be filled-in later)
+    0xFF, 0xFF,          // Dummy temperature (real value will be filled-in later)
+    0xFF, 0xFF,          // Dummy relative humidity (real value will be filled-in later)
+    0xFF, 0xFF,          // Dummy atmospheric pressure (real value will be filled-in later)
+    0xFF, 0xFF,          // Dummy illuminance (real value will be filled-in later)
+    0xFF                 // Dummy battery level (real value will be filled-in later)
 };
 
 /**@brief Function to move the sensor data to the m_beacon_info structure
@@ -195,8 +194,10 @@ static void update_m_beacon_info(void)
     // Illuminance measurement
     m_beacon_info[APP_BEACON_INFO_ILLU_OFFSET] = (illuminance & 0xFF00) >> 8;
     m_beacon_info[APP_BEACON_INFO_ILLU_OFFSET + 1] = (illuminance & 0x00FF);
+#if CONFIG_BATT_MEAS_ENABLED
     // Battery level measurement
-    m_beacon_info[APP_BEACON_INFO_BATT_OFFSET] = 0;
+    m_beacon_info[APP_BEACON_INFO_BATT_OFFSET] = m_batt_meas_prev_level;
+#endif // CONFIG_BATT_MEAS_ENABLED
 }
 
 /**@brief Callback function for asserts in the SoftDevice.
@@ -215,26 +216,6 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
     app_error_handler(DEAD_BEEF, line_num, p_file_name);
 }
 
-/**@brief Function that builts raw (unencoded) advertising data
- *
- */
-/*static void advdata_build(void)
-{
-    uint8_t       flags = BLE_GAP_ADV_FLAG_BR_EDR_NOT_SUPPORTED;
-    ble_advdata_manuf_data_t manuf_specific_data;
-
-    manuf_specific_data.company_identifier = APP_COMPANY_IDENTIFIER;
-    manuf_specific_data.data.p_data = (uint8_t *) m_beacon_info;
-    manuf_specific_data.data.size   = APP_BEACON_INFO_LENGTH;
-
-    // Build and set advertising data.
-    memset(&m_raw_adv_data, 0, sizeof(m_raw_adv_data));
-
-    m_raw_adv_data.name_type             = BLE_ADVDATA_NO_NAME;
-    m_raw_adv_data.flags                 = flags;
-    m_raw_adv_data.p_manuf_specific_data = &manuf_specific_data;
-}*/
-
 /**@brief Function for initializing the Advertising functionality.
  *
  * @details Encodes the required advertising data and passes it to the stack.
@@ -242,43 +223,29 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
  */
 static void advertising_init(void)
 {
-    uint32_t      err_code;
-    ble_advdata_t advdata;
-    uint8_t       flags = BLE_GAP_ADV_FLAG_BR_EDR_NOT_SUPPORTED;
+    uint32_t                  err_code;
+    ble_advdata_t             advdata;
+    uint8_t                   flags = BLE_GAP_ADV_FLAG_BR_EDR_NOT_SUPPORTED;
+    ble_advdata_manuf_data_t  manuf_specific_data;
+    ble_gap_conn_sec_mode_t   sec_mode;
 
-    ble_advdata_manuf_data_t manuf_specific_data;
+    ASSERT(APP_DEVICE_SHORT_NAME_LEN <= strlen(APP_DEVICE_NAME));
+
+    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&sec_mode);
+    err_code = sd_ble_gap_device_name_set(&sec_mode,
+                                          (const uint8_t *)APP_DEVICE_NAME,
+                                          strlen(APP_DEVICE_NAME));
+    APP_ERROR_CHECK(err_code);
 
     manuf_specific_data.company_identifier = APP_COMPANY_IDENTIFIER;
-
-#if defined(USE_UICR_FOR_MAJ_MIN_VALUES)
-    // If USE_UICR_FOR_MAJ_MIN_VALUES is defined, the major and minor values will be read from the
-    // UICR instead of using the default values. The major and minor values obtained from the UICR
-    // are encoded into advertising data in big endian order (MSB First).
-    // To set the UICR used by this example to a desired value, write to the address 0x10001080
-    // using the nrfjprog tool. The command to be used is as follows.
-    // nrfjprog --snr <Segger-chip-Serial-Number> --memwr 0x10001080 --val <your major/minor value>
-    // For example, for a major value and minor value of 0xabcd and 0x0102 respectively, the
-    // the following command should be used.
-    // nrfjprog --snr <Segger-chip-Serial-Number> --memwr 0x10001080 --val 0xabcd0102
-    uint16_t major_value = ((*(uint32_t *)UICR_ADDRESS) & 0xFFFF0000) >> 16;
-    uint16_t minor_value = ((*(uint32_t *)UICR_ADDRESS) & 0x0000FFFF);
-
-    uint8_t index = MAJ_VAL_OFFSET_IN_BEACON_INFO;
-
-    m_beacon_info[index++] = MSB_16(major_value);
-    m_beacon_info[index++] = LSB_16(major_value);
-
-    m_beacon_info[index++] = MSB_16(minor_value);
-    m_beacon_info[index++] = LSB_16(minor_value);
-#endif
-
     manuf_specific_data.data.p_data = (uint8_t *) m_beacon_info;
     manuf_specific_data.data.size   = APP_BEACON_INFO_LENGTH;
 
     // Build and set advertising data.
     memset(&advdata, 0, sizeof(advdata));
 
-    advdata.name_type             = BLE_ADVDATA_NO_NAME;
+    advdata.name_type             = BLE_ADVDATA_SHORT_NAME;
+    advdata.short_name_len        = APP_DEVICE_SHORT_NAME_LEN;
     advdata.flags                 = flags;
     advdata.p_manuf_specific_data = &manuf_specific_data;
 
@@ -319,11 +286,18 @@ static void advertising_start(void)
  */
 static void advertising_update_data(void)
 {
-    uint32_t      err_code;
-    ble_advdata_t advdata;
-    uint8_t       flags = BLE_GAP_ADV_FLAG_BR_EDR_NOT_SUPPORTED;
+    uint32_t                  err_code;
+    ble_advdata_t             advdata;
+    uint8_t                   flags = BLE_GAP_ADV_FLAG_BR_EDR_NOT_SUPPORTED;
+    ble_advdata_manuf_data_t  manuf_specific_data;
+    ble_gap_conn_sec_mode_t   sec_mode;
 
-    ble_advdata_manuf_data_t manuf_specific_data;
+    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&sec_mode);
+
+    err_code = sd_ble_gap_device_name_set(&sec_mode,
+                                          (const uint8_t *)APP_DEVICE_NAME,
+                                          strlen(APP_DEVICE_NAME));
+    APP_ERROR_CHECK(err_code);
 
     manuf_specific_data.company_identifier = APP_COMPANY_IDENTIFIER;
     manuf_specific_data.data.p_data = (uint8_t *) m_beacon_info;
@@ -332,7 +306,8 @@ static void advertising_update_data(void)
     // Build and set advertising data.
     memset(&advdata, 0, sizeof(advdata));
 
-    advdata.name_type             = BLE_ADVDATA_NO_NAME;
+    advdata.name_type             = BLE_ADVDATA_SHORT_NAME;
+    advdata.short_name_len        = APP_DEVICE_SHORT_NAME_LEN;
     advdata.flags                 = flags;
     advdata.p_manuf_specific_data = &manuf_specific_data;
 
@@ -353,11 +328,8 @@ static void advertising_update_data(void)
 static void application_timers_start(void)
 {
     ret_code_t err_code;
-    uint32_t meas_timer_ticks;
 
-    meas_timer_ticks = APP_TIMER_TICKS(MEAS_INTERVAL);
-
-    err_code = app_timer_start(m_meas_timer_id, meas_timer_ticks, NULL);
+    err_code = app_timer_start(m_meas_timer, APP_TIMER_TICKS(1000u * CONFIG_APP_MEAS_INTERVAL), NULL);
     APP_ERROR_CHECK(err_code);
 }
 
@@ -393,13 +365,6 @@ static void log_init(void)
     NRF_LOG_DEFAULT_BACKENDS_INIT();
 }
 
-/**@brief Function for initializing LEDs. */
-static void leds_init(void)
-{
-    ret_code_t err_code = bsp_init(BSP_INIT_LEDS, NULL);
-    APP_ERROR_CHECK(err_code);
-}
-
 /**@brief Function for initializing GPIOs. */
 static void gpio_init(void)
 {
@@ -431,6 +396,8 @@ void twi_handler(nrfx_twim_evt_t const * p_event, void * p_context)
 static void twi_init(void)
 {
     ret_code_t err_code;
+
+    STATIC_ASSERT(NRFX_TWIM_ENABLED);
 	
     const nrfx_twim_config_t twi_config = {
        .scl                = TWI_SCL_PIN,
@@ -483,13 +450,140 @@ static void timers_init(void)
     ret_code_t err_code = app_timer_init();
     APP_ERROR_CHECK(err_code);
 	
-	// Create DOF service timer.
-    err_code = app_timer_create(&m_meas_timer_id,
+    // Create sensor measurement timer.
+    err_code = app_timer_create(&m_meas_timer,
                                 APP_TIMER_MODE_REPEATED,
                                 meas_timeout_handler);
     APP_ERROR_CHECK(err_code);
 }
 
+#if CONFIG_BATT_MEAS_ENABLED
+/**@brief Process ADC data for the battery level measurement.
+ */
+static void m_batt_meas_process(void *p_context, uint16_t size)
+{
+    //nrf_saadc_value_t *p_saadc_value = *(nrf_saadc_value_t *)(p_context);
+    nrf_saadc_value_t measurement = *(nrf_saadc_value_t *)(p_context);
+    //nrf_saadc_value_t measurement = *p_saadc_value;
+    uint32_t voltage;
+    uint8_t level;
+    ret_code_t err_code;
+
+    // Calculate battery voltage.
+    voltage = ((uint32_t)(measurement) * CONFIG_BATT_MEAS_ADC_DIVIDER * CONFIG_BATT_MEAS_ADC_REFERENCE) / CONFIG_BATT_MEAS_ADC_MAX_CONV;
+
+    // A simple linear approximation is sufficient when the power consumption is fairly low (< 100 mW).
+    if (voltage >= CONFIG_BATT_MEAS_MAX_LEVEL)
+    {
+        level = 100;
+    }
+    else if (voltage <= CONFIG_BATT_MEAS_MIN_LEVEL)
+    {
+        level = 0;
+    }
+    else
+    {
+        level = 100 * (voltage - CONFIG_BATT_MEAS_MIN_LEVEL) /
+                (CONFIG_BATT_MEAS_MAX_LEVEL - CONFIG_BATT_MEAS_MIN_LEVEL);
+    }
+
+    printf("Battery level: %u%% (%u mV, %u ADC)\n", level, voltage, measurement);
+
+    /*
+     * Only notify the application about the battery level if:
+     * - change in the battery level since the last notification has exceeded the threshold,
+     * - or if the battery level is 0.
+     */
+    if ((level <= ((int)(m_batt_meas_prev_level) - CONFIG_BATT_NOTIF_THRESHOLD)) ||
+        (level >= ((int)(m_batt_meas_prev_level) + CONFIG_BATT_NOTIF_THRESHOLD)) ||
+        (level == 0))
+    {
+        m_batt_meas_prev_level = level;
+    }
+}
+
+/**@brief Handler that is called upon timeout of the timer for battery measurements. It will start an ADC conversion.
+ */
+static void m_batt_meas_timeout_handler(void* p_context)
+{
+    static nrf_saadc_value_t buffer;
+
+    // Start an ADC conversion
+    APP_ERROR_CHECK(nrfx_saadc_buffer_convert(&buffer, 1));
+    APP_ERROR_CHECK(nrfx_saadc_sample());
+}
+
+/**@brief Handler that is called upon an ADC event (calibration done or conversion done)
+ */
+void m_batt_meas_saadc_event_handler(const nrfx_saadc_evt_t *p_event)
+{
+    switch (p_event->type)
+    {
+        case NRFX_SAADC_EVT_CALIBRATEDONE:
+            // Perform first measurement just after calibration.
+            APP_ERROR_CHECK(app_sched_event_put(&(p_event->data.done.p_buffer),
+                                                 sizeof(p_event->data.done.p_buffer),
+                                                 m_batt_meas_process
+                                                 ));
+
+            // The following measurements will be done at regular intervals.
+            APP_ERROR_CHECK(app_timer_start(m_batt_timer,
+                                            APP_TIMER_TICKS(1000u * CONFIG_BATT_MEAS_POLL_INTERVAL),
+                                            NULL));
+            break;
+
+        case NRFX_SAADC_EVT_DONE:
+            ASSERT(p_event->data.done.size == 1);
+            
+            saadc_value = *(p_event->data.done.p_buffer);
+            //APP_ERROR_CHECK(app_sched_event_put(&(p_event->data.done.p_buffer),
+                                                 //sizeof(p_event->data.done.p_buffer),
+                                                 //m_batt_meas_process
+                                                 //));
+
+            APP_ERROR_CHECK(app_sched_event_put(&saadc_value,
+                                                sizeof(saadc_value),
+                                                m_batt_meas_process
+                                                ));
+            
+            break;
+
+        default:
+            /* Ignore */
+            break;
+    }
+}
+
+static void m_batt_meas_init(void)
+{
+    nrf_saadc_channel_config_t adc_channel_config = NRFX_SAADC_DEFAULT_CHANNEL_CONFIG_SE(NRF_SAADC_INPUT_VDD);
+    nrfx_saadc_config_t adc_config = NRFX_SAADC_DEFAULT_CONFIG;
+    ret_code_t status;
+
+    // Verify the SAADC driver configuration.
+    ASSERT(NRFX_SAADC_CONFIG_RESOLUTION == NRF_SAADC_RESOLUTION_14BIT);
+    ASSERT(adc_channel_config.reference == NRF_SAADC_REFERENCE_INTERNAL);
+    ASSERT(adc_channel_config.gain      == NRF_SAADC_GAIN1_6);
+
+    // Enable Burst Mode if oversampling is enabled.
+    adc_channel_config.burst = (NRFX_SAADC_CONFIG_OVERSAMPLE != 0) ? NRF_SAADC_BURST_ENABLED :
+                                                                NRF_SAADC_BURST_DISABLED;
+
+    status = nrfx_saadc_init(&adc_config, m_batt_meas_saadc_event_handler);
+    APP_ERROR_CHECK(status);
+
+    status = nrfx_saadc_channel_init(CONFIG_BATT_MEAS_ADC_CHANNEL, &adc_channel_config);
+    APP_ERROR_CHECK(status);
+
+    status = app_timer_create(&m_batt_timer, APP_TIMER_MODE_REPEATED, m_batt_meas_timeout_handler);
+    APP_ERROR_CHECK(status);
+
+    // The following measurements will be done at regular intervals.
+    APP_ERROR_CHECK(app_timer_start(m_batt_timer,
+                                    APP_TIMER_TICKS(1000u * CONFIG_BATT_MEAS_POLL_INTERVAL),
+                                    NULL));
+}
+#endif /* CONFIG_BATT_MEAS_ENABLED */
 
 /**@brief Function for initializing power management.
  */
@@ -524,10 +618,12 @@ int main(void)
     gpio_init();
     twi_init();   // For the I2C bus
     timers_init();
-    leds_init();
     power_management_init();
     sensors_init();
     sensors_sample();
+#if CONFIG_BATT_MEAS_ENABLED
+    m_batt_meas_init();
+#endif
     ble_stack_init();
     advertising_init();
 
