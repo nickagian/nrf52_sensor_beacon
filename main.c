@@ -164,13 +164,13 @@ static uint8_t ui_buff_index = 0;
 
 static uint8_t m_beacon_info[APP_BEACON_INFO_LENGTH] =                    /**< Information advertised by the Beacon. */
 {
-    APP_DEVICE_TYPE,     // Manufacturer specific information. Specifies the device type in this
-                         // implementation.
-    0xFF, 0xFF,          // Dummy temperature (real value will be filled-in later)
-    0xFF, 0xFF,          // Dummy relative humidity (real value will be filled-in later)
-    0xFF, 0xFF,          // Dummy atmospheric pressure (real value will be filled-in later)
-    0xFF, 0xFF,          // Dummy illuminance (real value will be filled-in later)
-    0xFF                 // Dummy battery level (real value will be filled-in later)
+    (APP_DEVICE_TYPE & 0xFF00) >> 8,  // Manufacturer specific information. Specifies the device type in this implementation.
+    (APP_DEVICE_TYPE & 0x00FF),
+    0xFF, 0xFF,                       // Dummy temperature (real value will be filled-in later)
+    0xFF, 0xFF,                       // Dummy relative humidity (real value will be filled-in later)
+    0xFF, 0xFF,                       // Dummy atmospheric pressure (real value will be filled-in later)
+    0xFF, 0xFF,                       // Dummy illuminance (real value will be filled-in later)
+    0xFF                              // Dummy battery level (real value will be filled-in later)
 };
 
 /**@brief Function to move the sensor data to the m_beacon_info structure
